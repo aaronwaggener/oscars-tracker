@@ -39,7 +39,7 @@
     .view {
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.5s ease;
+      transition: opacity 0.3s ease;
       position: absolute;
       width: 100%;
       left: 0;
@@ -469,12 +469,11 @@
         }
 
         li.addEventListener('click', () => {
-          // Save current scroll position of the home view before navigating away.
+          // Save the current scroll position from the home view.
           homeScrollPosition = window.pageYOffset;
+          // Transition to the category view (scroll to top)
+          transitionToView('category-view', 0);
           renderCategoryView(category);
-          showView('category-view');
-          // Smoothly scroll to the top when landing on the category view.
-          window.scrollTo({ top: 0, behavior: 'smooth' });
         });
         listEl.appendChild(li);
       });
@@ -525,7 +524,6 @@
       // Add click listeners for both groups to allow deselecting
       document.querySelectorAll('input[name="userPick"]').forEach(radio => {
         radio.addEventListener('click', () => {
-          // If already selected, deselect it; otherwise update normally.
           if (picks[category] && picks[category].userPick === radio.value) {
             radio.checked = false;
             updatePick(category, 'userPick', "");
@@ -544,27 +542,35 @@
           }
         });
       });
-      
+
       // Update highlighting initially (in case both selections already exist)
       updateHighlighting(category);
     }
 
-    // Show the view with the given id and hide others
-    function showView(viewId) {
-      document.querySelectorAll('.view').forEach(view => {
-        if (view.id === viewId) {
-          view.classList.add('active');
-        } else {
-          view.classList.remove('active');
-        }
-      });
+    // Helper function to transition between views with fade out, scroll, then fade in.
+    function transitionToView(newViewId, scrollTarget) {
+      const currentView = document.querySelector('.view.active');
+      if (currentView) {
+        currentView.style.transition = 'opacity 0.3s ease';
+        currentView.style.opacity = 0;
+        setTimeout(() => {
+          currentView.classList.remove('active');
+          // Immediately set the scroll position without animation.
+          window.scrollTo({ top: scrollTarget, behavior: 'auto' });
+          const newView = document.getElementById(newViewId);
+          newView.classList.add('active');
+          newView.style.opacity = 0;
+          setTimeout(() => {
+            newView.style.transition = 'opacity 0.3s ease';
+            newView.style.opacity = 1;
+          }, 50);
+        }, 300);
+      }
     }
 
     // Event listener for Back button
     document.getElementById('back-button').addEventListener('click', () => {
-      showView('home');
-      // When returning to the home view, restore the saved scroll position.
-      window.scrollTo({ top: homeScrollPosition, behavior: 'smooth' });
+      transitionToView('home', homeScrollPosition);
     });
 
     // Initialize app
