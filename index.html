@@ -33,6 +33,8 @@
       max-width: 800px;
       margin: 20px auto;
       padding: 0 20px;
+      position: relative;
+      min-height: 90vh;
     }
     .view {
       opacity: 0;
@@ -66,16 +68,27 @@
       cursor: pointer;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       transition: background 0.3s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
     #categories-list li:hover {
       background: #e9ecef;
+    }
+    /* Highlight indicators for matching/mismatching picks on home page */
+    #categories-list li.match {
+      border-left: 4px solid #28a745;
+      background-color: #e6f9ea;
+    }
+    #categories-list li.mismatch {
+      border-left: 4px solid #dc3545;
+      background-color: #f9eaea;
     }
     .category-title {
       font-weight: bold;
     }
     .category-status {
-      float: right;
-      font-size: 0.9rem;
+      font-size: 1.2rem;
       color: #666;
     }
     /* Category View Styles */
@@ -89,6 +102,21 @@
       cursor: pointer;
       font-size: 1rem;
       margin-bottom: 10px;
+    }
+    /* Container for both pick groups (for highlighting) */
+    #picks-container {
+      transition: border 0.3s ease, padding 0.3s ease;
+    }
+    /* Highlight styles when both selections are made */
+    #picks-container.match {
+      border: 2px solid #28a745; /* subtle green */
+      border-radius: 5px;
+      padding: 10px;
+    }
+    #picks-container.mismatch {
+      border: 2px solid #dc3545; /* subtle red */
+      border-radius: 5px;
+      padding: 10px;
     }
     .selection-group {
       background: #fff;
@@ -129,13 +157,16 @@
     <section id="category-view" class="view">
       <button id="back-button">← Back to Categories</button>
       <h2 id="category-title"></h2>
-      <div class="selection-group">
-        <h3>Your Pick</h3>
-        <div id="user-pick-options"></div>
-      </div>
-      <div class="selection-group">
-        <h3>Official Winner</h3>
-        <div id="official-winner-options"></div>
+      <!-- Wrap both selection groups for highlighting -->
+      <div id="picks-container">
+        <div class="selection-group">
+          <h3>Your Pick</h3>
+          <div id="user-pick-options"></div>
+        </div>
+        <div class="selection-group">
+          <h3>Official Winner</h3>
+          <div id="official-winner-options"></div>
+        </div>
       </div>
     </section>
   </div>
@@ -374,7 +405,7 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(picks));
     }
 
-    // Update a single pick value
+    // Update a single pick value and then update the highlighting
     function updatePick(category, type, nominee) {
       if (!picks[category]) {
         picks[category] = { userPick: "", officialWinner: "" };
@@ -382,9 +413,26 @@
       picks[category][type] = nominee;
       savePicks();
       updateHomeList();
+      updateHighlighting(category);
     }
 
-    // Render the home page list of categories
+    // Update highlighting on the picks container based on the selections
+    function updateHighlighting(category) {
+      const container = document.getElementById('picks-container');
+      if (!container) return;
+      container.classList.remove('match', 'mismatch');
+      const userPick = picks[category]?.userPick;
+      const officialWinner = picks[category]?.officialWinner;
+      if (userPick && officialWinner) {
+        if (userPick === officialWinner) {
+          container.classList.add('match');
+        } else {
+          container.classList.add('mismatch');
+        }
+      }
+    }
+
+    // Render the home page list of categories with color indicators if both selections exist
     function updateHomeList() {
       const listEl = document.getElementById('categories-list');
       listEl.innerHTML = '';
@@ -393,20 +441,30 @@
         const li = document.createElement('li');
         li.classList.add('category-item');
         li.dataset.category = category;
-        
+
         // Category title
         const titleSpan = document.createElement('span');
         titleSpan.classList.add('category-title');
         titleSpan.textContent = category;
         li.appendChild(titleSpan);
-        
-        // Show status: if userPick exists
+
+        // Status indicator (check mark) for a user pick
         const statusSpan = document.createElement('span');
         statusSpan.classList.add('category-status');
         const userPick = picks[category]?.userPick || "";
         statusSpan.textContent = userPick ? "✔" : "";
         li.appendChild(statusSpan);
-        
+
+        // Apply color indicator if both picks exist
+        const pickData = picks[category];
+        if (pickData && pickData.userPick && pickData.officialWinner) {
+          if (pickData.userPick === pickData.officialWinner) {
+            li.classList.add('match');
+          } else {
+            li.classList.add('mismatch');
+          }
+        }
+
         li.addEventListener('click', () => {
           renderCategoryView(category);
           showView('category-view');
@@ -457,7 +515,7 @@
         if (officialOption) officialOption.checked = true;
       }
 
-      // Add change listeners
+      // Add change listeners for both groups
       document.querySelectorAll('input[name="userPick"]').forEach(radio => {
         radio.addEventListener('change', (e) => {
           updatePick(category, 'userPick', e.target.value);
@@ -468,6 +526,9 @@
           updatePick(category, 'officialWinner', e.target.value);
         });
       });
+      
+      // Update highlighting initially (in case both selections already exist)
+      updateHighlighting(category);
     }
 
     // Show the view with the given id and hide others
