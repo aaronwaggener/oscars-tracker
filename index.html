@@ -172,6 +172,9 @@
   </div>
 
   <script>
+    // Global variable to store home view scroll position.
+    let homeScrollPosition = 0;
+
     // Data: Categories and their nominees
     const categories = {
       "Actor in a Leading Role": {
@@ -466,8 +469,12 @@
         }
 
         li.addEventListener('click', () => {
+          // Save current scroll position of the home view before navigating away.
+          homeScrollPosition = window.pageYOffset;
           renderCategoryView(category);
           showView('category-view');
+          // Smoothly scroll to the top when landing on the category view.
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         });
         listEl.appendChild(li);
       });
@@ -556,6 +563,8 @@
     // Event listener for Back button
     document.getElementById('back-button').addEventListener('click', () => {
       showView('home');
+      // When returning to the home view, restore the saved scroll position.
+      window.scrollTo({ top: homeScrollPosition, behavior: 'smooth' });
     });
 
     // Initialize app
