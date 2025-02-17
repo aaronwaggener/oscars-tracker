@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Oscar Picks Tracker</title>
+  <style>
+    /* Base Styles */
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background-color: #f4f7f8;
+      color: #333;
+      line-height: 1.6;
+    }
+    h1, h2, h3 {
+      margin: 0 0 10px;
+    }
+    h1 {
+      font-size: 2rem;
+    }
+    h2 {
+      font-size: 1.75rem;
+    }
+    h3 {
+      font-size: 1.25rem;
+    }
+    /* Container and View Transitions */
+    #app {
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 0 20px;
+    }
+    .view {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+      position: absolute;
+      width: 100%;
+      left: 0;
+      top: 0;
+    }
+    .view.active {
+      opacity: 1;
+      pointer-events: auto;
+      position: relative;
+    }
+    /* Home Page Styles */
+    #home header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    #categories-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    #categories-list li {
+      background: #fff;
+      margin: 10px 0;
+      padding: 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      transition: background 0.3s;
+    }
+    #categories-list li:hover {
+      background: #e9ecef;
+    }
+    .category-title {
+      font-weight: bold;
+    }
+    .category-status {
+      float: right;
+      font-size: 0.9rem;
+      color: #666;
+    }
+    /* Category View Styles */
+    #category-view {
+      padding-top: 20px;
+    }
+    #back-button {
+      background: none;
+      border: none;
+      color: #007bff;
+      cursor: pointer;
+      font-size: 1rem;
+      margin-bottom: 10px;
+    }
+    .selection-group {
+      background: #fff;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .option {
+      margin: 8px 0;
+    }
+    .option label {
+      cursor: pointer;
+    }
+    input[type="radio"] {
+      margin-right: 10px;
+    }
+    /* Responsive */
+    @media (max-width: 600px) {
+      #app {
+        padding: 0 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- Home View: List of Categories -->
+    <section id="home" class="view active">
+      <header>
+        <h1>Oscar Picks Tracker</h1>
+        <p>Select a category to make or update your picks.</p>
+      </header>
+      <ul id="categories-list"></ul>
+    </section>
+
+    <!-- Category Detail View -->
+    <section id="category-view" class="view">
+      <button id="back-button">← Back to Categories</button>
+      <h2 id="category-title"></h2>
+      <div class="selection-group">
+        <h3>Your Pick</h3>
+        <div id="user-pick-options"></div>
+      </div>
+      <div class="selection-group">
+        <h3>Official Winner</h3>
+        <div id="official-winner-options"></div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // Data: Categories and their nominees
+    const categories = {
+      "Actor in a Leading Role": {
+        nominees: [
+          "Adrien Brody – The Brutalist",
+          "Timothée Chalamet – A Complete Unknown",
+          "Colman Domingo – Sing Sing",
+          "Ralph Fiennes – Conclave",
+          "Sebastian Stan – The Apprentice"
+        ]
+      },
+      "Actor in a Supporting Role": {
+        nominees: [
+          "Yura Borisov – Anora",
+          "Kieran Culkin – A Real Pain",
+          "Edward Norton – A Complete Unknown",
+          "Guy Pearce – The Brutalist",
+          "Jeremy Strong – The Apprentice"
+        ]
+      },
+      "Actress in a Leading Role": {
+        nominees: [
+          "Cynthia Erivo – Wicked",
+          "Karla Sofía Gascón – Emilia Pérez",
+          "Mikey Madison – Anora",
+          "Demi Moore – The Substance",
+          "Fernanda Torres – I'm Still Here"
+        ]
+      },
+      "Actress in a Supporting Role": {
+        nominees: [
+          "Monica Barbaro – A Complete Unknown",
+          "Ariana Grande – Wicked",
+          "Felicity Jones – The Brutalist",
+          "Isabella Rossellini – Conclave",
+          "Zoe Saldaña – Emilia Pérez"
+        ]
+      },
+      "Animated Feature Film": {
+        nominees: [
+          "Flow – Gints Zilbalodis, Matīss Kaža, Ron Dyens and Gregory Zalcman",
+          "Inside Out 2 – Kelsey Mann and Mark Nielsen",
+          "Memoir of a Snail – Adam Elliot and Liz Kearney",
+          "Wallace & Gromit: Vengeance Most Fowl – Nick Park, Merlin Crossingham and Richard Beek",
+          "The Wild Robot – Chris Sanders and Jeff Hermann"
+        ]
+      },
+      "Animated Short Film": {
+        nominees: [
+          "Beautiful Men – Nicolas Keppens and Brecht Van Elslande",
+          "In the Shadow of the Cypress – Shirin Sohani and Hossein Molayemi",
+          "Magic Candies – Daisuke Nishio and Takashi Washio",
+          "Wander to Wonder – Nina Gantz and Stienette Bosklopper",
+          "Yuck! – Loïc Espuche and Juliette Marquet"
+        ]
+      },
+      "Cinematography": {
+        nominees: [
+          "The Brutalist – Lol Crawley",
+          "Dune: Part Two – Greig Fraser",
+          "Emilia Pérez – Paul Guilhaume",
+          "Maria – Ed Lachman",
+          "Nosferatu – Jarin Blaschke"
+        ]
+      },
+      "Costume Design": {
+        nominees: [
+          "A Complete Unknown – Arianne Phillips",
+          "Conclave – Lisy Christl",
+          "Gladiator II – Janty Yates and Dave Crossman",
+          "Nosferatu – Linda Muir",
+          "Wicked – Paul Tazewell"
+        ]
+      },
+      "Directing": {
+        nominees: [
+          "Anora – Sean Baker",
+          "The Brutalist – Brady Corbet",
+          "A Complete Unknown – James Mangold",
+          "Emilia Pérez – Jacques Audiard",
+          "The Substance – Coralie Fargeat"
+        ]
+      },
+      "Documentary Feature Film": {
+        nominees: [
+          "Black Box Diaries – Shiori Ito, Eric Nyari and Hanna Aqvilin",
+          "No Other Land – Basel Adra, Rachel Szor, Hamdan Ballal and Yuval Abraham",
+          "Porcelain War – Brendan Bellomo, Slava Leontyev, Aniela Sidorska and Paula DuPre' Pesmen",
+          "Soundtrack to a Coup d'Etat – Johan Grimonprez, Daan Milius and Rémi Grellety",
+          "Sugarcane – Julian Brave NoiseCat, Emily Kassie and Kellen Quinn"
+        ]
+      },
+      "Documentary Short Film": {
+        nominees: [
+          "Death by Numbers – Kim A. Snyder and Janique L. Robillard",
+          "I Am Ready, Warden – Smriti Mundhra and Maya Gnyp",
+          "Incident – Bill Morrison and Jamie Kalven",
+          "Instruments of a Beating Heart – Ema Ryan Yamazaki and Eric Nyari",
+          "The Only Girl in the Orchestra – Molly O’Brien and Lisa Remington"
+        ]
+      },
+      "Film Editing": {
+        nominees: [
+          "Anora – Sean Baker",
+          "The Brutalist – David Jancso",
+          "Conclave – Nick Emerson",
+          "Emilia Pérez – Juliette Welfling",
+          "Wicked – Myron Kerstein"
+        ]
+      },
+      "International Feature Film": {
+        nominees: [
+          "Brazil – I'm Still Here",
+          "Denmark – The Girl with the Needle",
+          "France – Emilia Pérez",
+          "Germany – The Seed of the Sacred Fig",
+          "Latvia – Flow"
+        ]
+      },
+      "Makeup and Hairstyling": {
+        nominees: [
+          "A Different Man – Mike Marino, David Presto and Crystal Jurado",
+          "Emilia Pérez – Julia Floch Carbonel, Emmanuel Janvier and Jean-Christophe Spadaccini",
+          "Nosferatu – David White, Traci Loader and Suzanne Stokes-Munton",
+          "The Substance – Pierre-Olivier Persin, Stéphanie Guillon and Marilyne Scarselli",
+          "Wicked – Frances Hannon, Laura Blount and Sarah Nuth"
+        ]
+      },
+      "Music (Original Score)": {
+        nominees: [
+          "The Brutalist – Daniel Blumberg",
+          "Conclave – Volker Bertelmann",
+          "Emilia Pérez – Clément Ducol and Camille",
+          "Wicked – John Powell and Stephen Schwartz",
+          "The Wild Robot – Kris Bowers"
+        ]
+      },
+      "Music (Original Song)": {
+        nominees: [
+          "El Mal – from Emilia Pérez; Music by Clément Ducol and Camille; Lyric by Clément Ducol, Camille and Jacques Audiard",
+          "The Journey – from The Six Triple Eight; Music and Lyric by Diane Warren",
+          "Like A Bird – from Sing Sing; Music and Lyric by Abraham Alexander and Adrian Quesada",
+          "Mi Camino – from Emilia Pérez; Music and Lyric by Camille and Clément Ducol",
+          "Never Too Late – from Elton John: Never Too Late; Music and Lyric by Elton John, Brandi Carlile, Andrew Watt and Bernie Taupin"
+        ]
+      },
+      "Best Picture": {
+        nominees: [
+          "Anora – Alex Coco, Samantha Quan and Sean Baker, Producers",
+          "The Brutalist – Nick Gordon, Brian Young, Andrew Morrison, D.J. Gugenheim and Brady Corbet, Producers",
+          "A Complete Unknown – Fred Berger, James Mangold and Alex Heineman, Producers",
+          "Conclave – Tessa Ross, Juliette Howell and Michael A. Jackman, Producers",
+          "Dune: Part Two – Mary Parent, Cale Boyter, Tanya Lapointe and Denis Villeneuve, Producers",
+          "Emilia Pérez – Pascal Caucheteux and Jacques Audiard, Producers",
+          "I'm Still Here – Maria Carlota Bruno and Rodrigo Teixeira, Producers",
+          "Nickel Boys – Dede Gardner, Jeremy Kleiner and Joslyn Barnes, Producers",
+          "The Substance – Coralie Fargeat and Tim Bevan & Eric Fellner, Producers",
+          "Wicked – Marc Platt, Producer"
+        ]
+      },
+      "Production Design": {
+        nominees: [
+          "The Brutalist – Production Design by Judy Becker; Set Decoration by Patricia Cuccia",
+          "Conclave – Production Design by Suzie Davies; Set Decoration by Cynthia Sleiter",
+          "Dune: Part Two – Production Design by Patrice Vermette; Set Decoration by Shane Vieau",
+          "Nosferatu – Production Design by Craig Lathrop; Set Decoration by Beatrice Brentnerová",
+          "Wicked – Production Design by Nathan Crowley; Set Decoration by Lee Sandales"
+        ]
+      },
+      "Live Action Short Film": {
+        nominees: [
+          "A Lien – Sam Cutler-Kreutz and David Cutler-Kreutz",
+          "Anuja – Adam J. Graves and Suchitra Mattai",
+          "I'm Not a Robot – Victoria Warmerdam and Trent",
+          "The Last Ranger – Cindy Lee and Darwin Shaw",
+          "The Man Who Could Not Remain Silent – Nebojša Slijepčević and Danijel Pek"
+        ]
+      },
+      "Sound": {
+        nominees: [
+          "A Complete Unknown – Tod A. Maitland, Donald Sylvester, Ted Caplan, Paul Massey and David Giammarco",
+          "Dune: Part Two – Gareth John, Richard King, Ron Bartlett and Doug Hemphill",
+          "Emilia Pérez – Erwan Kerzanet, Aymeric Devoldère, Maxence Dussère, Cyril Holtz and Niels Barletta",
+          "Wicked – Simon Hayes, Nancy Nugent Title, Jack Dolman, Andy Nelson and John Marquis",
+          "The Wild Robot – Randy Thom, Brian Chumney, Gary A. Rizzo and Leff Lefferts"
+        ]
+      },
+      "Visual Effects": {
+        nominees: [
+          "Alien: Romulus – Eric Barba, Nelson Sepulveda-Fauser, Daniel Macarin and Shane Mahan",
+          "Better Man – Luke Millar, David Clayton, Keith Herft and Peter Stubbs",
+          "Dune: Part Two – Paul Lambert, Stephen James, Rhys Salcombe and Gerd Nefzer",
+          "Kingdom of the Planet of the Apes – Erik Winquist, Stephen Unterfranz, Paul Story and Rodney Burke",
+          "Wicked – Pablo Helman, Jonathan Fawkner, David Shirk and Paul Corbould"
+        ]
+      },
+      "Writing (Adapted Screenplay)": {
+        nominees: [
+          "A Complete Unknown – Screenplay by James Mangold and Jay Cocks",
+          "Conclave – Screenplay by Peter Straughan",
+          "Emilia Pérez – Screenplay by Jacques Audiard; In collaboration with Thomas Bidegain, Léa Mysius and Nicolas Livecchi",
+          "Nickel Boys – Screenplay by RaMell Ross & Joslyn Barnes",
+          "Sing Sing – Screenplay by Clint Bentley, Greg Kwedar; Story by Clint Bentley, Greg Kwedar, Clarence Maclin, John 'Divine G' Whitfield"
+        ]
+      },
+      "Writing (Original Screenplay)": {
+        nominees: [
+          "Anora – Written by Sean Baker",
+          "The Brutalist – Written by Brady Corbet, Mona Fastvold",
+          "A Real Pain – Written by Jesse Eisenberg",
+          "September 5 – Written by Moritz Binder, Tim Fehlbaum; Co-Written by Alex David",
+          "The Substance – Written by Coralie Fargeat"
+        ]
+      }
+    };
+
+    // LocalStorage key for our picks
+    const STORAGE_KEY = 'oscarPicks';
+
+    // Our in-memory picks object; structure: { [category]: { userPick, officialWinner } }
+    let picks = {};
+
+    // Load saved picks from localStorage (if any)
+    function loadPicks() {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      picks = stored ? JSON.parse(stored) : {};
+    }
+
+    // Save current picks to localStorage
+    function savePicks() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(picks));
+    }
+
+    // Update a single pick value
+    function updatePick(category, type, nominee) {
+      if (!picks[category]) {
+        picks[category] = { userPick: "", officialWinner: "" };
+      }
+      picks[category][type] = nominee;
+      savePicks();
+      updateHomeList();
+    }
+
+    // Render the home page list of categories
+    function updateHomeList() {
+      const listEl = document.getElementById('categories-list');
+      listEl.innerHTML = '';
+
+      Object.keys(categories).forEach(category => {
+        const li = document.createElement('li');
+        li.classList.add('category-item');
+        li.dataset.category = category;
+        
+        // Category title
+        const titleSpan = document.createElement('span');
+        titleSpan.classList.add('category-title');
+        titleSpan.textContent = category;
+        li.appendChild(titleSpan);
+        
+        // Show status: if userPick exists
+        const statusSpan = document.createElement('span');
+        statusSpan.classList.add('category-status');
+        const userPick = picks[category]?.userPick || "";
+        statusSpan.textContent = userPick ? "✔" : "";
+        li.appendChild(statusSpan);
+        
+        li.addEventListener('click', () => {
+          renderCategoryView(category);
+          showView('category-view');
+        });
+        listEl.appendChild(li);
+      });
+    }
+
+    // Render the detail view for a specific category
+    function renderCategoryView(category) {
+      document.getElementById('category-title').textContent = category;
+      const nominees = categories[category].nominees;
+      const userPickContainer = document.getElementById('user-pick-options');
+      const officialWinnerContainer = document.getElementById('official-winner-options');
+
+      // Clear previous options
+      userPickContainer.innerHTML = '';
+      officialWinnerContainer.innerHTML = '';
+
+      // Create radio buttons for each nominee
+      nominees.forEach((nominee, index) => {
+        // User Pick option
+        const userDiv = document.createElement('div');
+        userDiv.className = 'option';
+        const userId = `user-${category}-${index}`;
+        userDiv.innerHTML = `<input type="radio" name="userPick" id="${userId}" value="${nominee}">
+                             <label for="${userId}">${nominee}</label>`;
+        userPickContainer.appendChild(userDiv);
+
+        // Official Winner option
+        const officialDiv = document.createElement('div');
+        officialDiv.className = 'option';
+        const officialId = `official-${category}-${index}`;
+        officialDiv.innerHTML = `<input type="radio" name="officialWinner" id="${officialId}" value="${nominee}">
+                                   <label for="${officialId}">${nominee}</label>`;
+        officialWinnerContainer.appendChild(officialDiv);
+      });
+
+      // Preselect radio buttons if picks exist
+      const currentUserPick = picks[category]?.userPick;
+      const currentOfficial = picks[category]?.officialWinner;
+      if (currentUserPick) {
+        const userOption = document.querySelector(`input[name="userPick"][value="${currentUserPick}"]`);
+        if (userOption) userOption.checked = true;
+      }
+      if (currentOfficial) {
+        const officialOption = document.querySelector(`input[name="officialWinner"][value="${currentOfficial}"]`);
+        if (officialOption) officialOption.checked = true;
+      }
+
+      // Add change listeners
+      document.querySelectorAll('input[name="userPick"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+          updatePick(category, 'userPick', e.target.value);
+        });
+      });
+      document.querySelectorAll('input[name="officialWinner"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+          updatePick(category, 'officialWinner', e.target.value);
+        });
+      });
+    }
+
+    // Show the view with the given id and hide others
+    function showView(viewId) {
+      document.querySelectorAll('.view').forEach(view => {
+        if (view.id === viewId) {
+          view.classList.add('active');
+        } else {
+          view.classList.remove('active');
+        }
+      });
+    }
+
+    // Event listener for Back button
+    document.getElementById('back-button').addEventListener('click', () => {
+      showView('home');
+    });
+
+    // Initialize app
+    function init() {
+      loadPicks();
+      updateHomeList();
+    }
+
+    // Start app
+    init();
+  </script>
+</body>
+</html>
