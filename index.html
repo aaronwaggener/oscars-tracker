@@ -294,7 +294,7 @@
       "Makeup and Hairstyling": {
         nominees: [
           "A Different Man – Mike Marino, David Presto and Crystal Jurado",
-          "Emilia Pérez – Julia Floch Carbonel, Emmanuel Janvier and Jean-Christophe Spadaccini",
+          "Emilia Pérez – Julia Floch Carbonel, Emmanuel Janvier and Jean-Christophe Scardaccini",
           "Nosferatu – David White, Traci Loader and Suzanne Stokes-Munton",
           "The Substance – Pierre-Olivier Persin, Stéphanie Guillon and Marilyne Scarselli",
           "Wicked – Frances Hannon, Laura Blount and Sarah Nuth"
@@ -515,15 +515,26 @@
         if (officialOption) officialOption.checked = true;
       }
 
-      // Add change listeners for both groups
+      // Add click listeners for both groups to allow deselecting
       document.querySelectorAll('input[name="userPick"]').forEach(radio => {
-        radio.addEventListener('change', (e) => {
-          updatePick(category, 'userPick', e.target.value);
+        radio.addEventListener('click', () => {
+          // If already selected, deselect it; otherwise update normally.
+          if (picks[category] && picks[category].userPick === radio.value) {
+            radio.checked = false;
+            updatePick(category, 'userPick', "");
+          } else {
+            updatePick(category, 'userPick', radio.value);
+          }
         });
       });
       document.querySelectorAll('input[name="officialWinner"]').forEach(radio => {
-        radio.addEventListener('change', (e) => {
-          updatePick(category, 'officialWinner', e.target.value);
+        radio.addEventListener('click', () => {
+          if (picks[category] && picks[category].officialWinner === radio.value) {
+            radio.checked = false;
+            updatePick(category, 'officialWinner', "");
+          } else {
+            updatePick(category, 'officialWinner', radio.value);
+          }
         });
       });
       
